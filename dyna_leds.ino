@@ -334,7 +334,9 @@ void processTargetData() {
   }
   */
   auto closestTarget = sensor.getTarget(0);
-  Serial.println(closestTarget.format().c_str());
+  if (globalConfig.debugEnabled) {
+    Serial.println(closestTarget.format().c_str());
+  }
 
   // Extract distance and angle from closest target
   float distanceMM = closestTarget.d;  // Distance in millimeters
