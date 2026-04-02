@@ -19,6 +19,7 @@
  * - Edit include/config.h to customize hardware pins and behavior
  */
 
+#include <HardwareSerial.h>
 #include <FastLED.h>
 #include <LD2450.hpp>
 #include "config.h"
@@ -34,6 +35,7 @@ using namespace esphome::ld245x;
 CRGB leds[NUM_LEDS];
 
 // Sensor instance
+HardwareSerial radarSerial(2);
 LD2450 sensor;
 
 // Timing control
@@ -50,15 +52,15 @@ uint8_t lastHue = 128;
 // ============================================================================
 
 void setup() {
-  // Initialize Serial for debugging
-  #if DEBUG_ENABLED
-    Serial.begin(DEBUG_BAUD_RATE);
-    delay(1000);
-    Serial.println("=================================");
-    Serial.println("Dynamic LED Strip Control");
-    Serial.println("=================================");
-    Serial.println();
-  #endif
+// Initialize Serial for debugging
+#if DEBUG_ENABLED
+  Serial.begin(DEBUG_BAUD_RATE);
+  delay(1000);
+  Serial.println("=================================");
+  Serial.println("Dynamic LED Strip Control");
+  Serial.println("=================================");
+  Serial.println();
+#endif
 
   // Initialize LED strip
   initializeLEDs();
@@ -66,11 +68,11 @@ void setup() {
   // Initialize sensor
   initializeSensor();
 
-  #if DEBUG_ENABLED
-    Serial.println("Setup complete!");
-    Serial.println("Waiting for targets...");
-    Serial.println();
-  #endif
+#if DEBUG_ENABLED
+  Serial.println("Setup complete!");
+  Serial.println("Waiting for targets...");
+  Serial.println();
+#endif
 }
 
 // ============================================================================
@@ -105,78 +107,79 @@ void loop() {
  * Initialize FastLED library and LED strip
  */
 void initializeLEDs() {
-  #if DEBUG_ENABLED
-    Serial.println("Initializing LED strip...");
-    Serial.print("  Type: ");
-    Serial.println("WS2812B");
-    Serial.print("  Count: ");
-    Serial.println(NUM_LEDS);
-    Serial.print("  Data Pin: GPIO");
-    Serial.println(LED_DATA_PIN);
-    Serial.print("  Brightness: ");
-    Serial.println(BRIGHTNESS);
-  #endif
+#if DEBUG_ENABLED
+  Serial.println("Initializing LED strip...");
+  Serial.print("  Type: ");
+  Serial.println("WS2812B");
+  Serial.print("  Count: ");
+  Serial.println(NUM_LEDS);
+  Serial.print("  Data Pin: GPIO");
+  Serial.println(LED_DATA_PIN);
+  Serial.print("  Brightness: ");
+  Serial.println(BRIGHTNESS);
+#endif
 
   // Add LED strip to FastLED
   FastLED.addLeds<LED_TYPE, LED_DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
-  
+
   // Set global brightness
   FastLED.setBrightness(BRIGHTNESS);
-  
+
   // Clear all LEDs initially
   FastLED.clear();
   FastLED.show();
 
-  #if DEBUG_ENABLED
-    Serial.println("  Status: OK");
-    Serial.println();
-  #endif
+#if DEBUG_ENABLED
+  Serial.println("  Status: OK");
+  Serial.println();
+#endif
 }
 
 /**
  * Initialize HLK-LD2450 sensor via UART
  */
 void initializeSensor() {
-  #if DEBUG_ENABLED
-    Serial.println("Initializing HLK-LD2450 sensor...");
-    Serial.print("  TX Pin: GPIO");
-    Serial.println(UART_TX_PIN);
-    Serial.print("  RX Pin: GPIO");
-    Serial.println(UART_RX_PIN);
-    Serial.print("  Baud Rate: ");
-    Serial.println(SENSOR_BAUD_RATE);
-  #endif
+#if DEBUG_ENABLED
+  Serial.println("Initializing HLK-LD2450 sensor...");
+  Serial.print("  TX Pin: GPIO");
+  Serial.println(UART_TX_PIN);
+  Serial.print("  RX Pin: GPIO");
+  Serial.println(UART_RX_PIN);
+  Serial.print("  Baud Rate: ");
+  Serial.println(SENSOR_BAUD_RATE);
+#endif
 
   // Initialize UART for sensor communication
-  Serial2.begin(SENSOR_BAUD_RATE, SERIAL_8N1, UART_RX_PIN, UART_TX_PIN);
-  
-  // Initialize sensor library
-  sensor.begin(&Serial2);
+  radarSerial.begin(SENSOR_BAUD_RATE, SERIAL_8N1, UART_RX_PIN, UART_TX_PIN);
 
-  #if DEBUG_ENABLED
-    Serial.println("  Configuring sensor...");
-  #endif
+  // Initialize sensor library
+  sensor.begin(radarSerial);
+
+#if DEBUG_ENABLED
+  Serial.println("  Configuring sensor...");
+#endif
 
   // Configuration session (following LD2450.ino example)
   sensor.beginConfigurationSession();
-  
+
   // Optional: Set multi-target tracking mode
-  sensor.setMultiTargetTracking();
-  
-  // Optional: Query sensor information
-  #if DEBUG_ENABLED
-    sensor.queryTargetTrackingMode();
-    sensor.queryFirmwareVersion();
-    sensor.queryMacAddress();
-    sensor.queryZoneFilter();
-  #endif
-  
+  //sensor.setMultiTargetTracking();
+  sensor.setSingleTargetTracking();
+
+// Optional: Query sensor information
+#if DEBUG_ENABLED
+  sensor.queryTargetTrackingMode();
+  sensor.queryFirmwareVersion();
+  sensor.queryMacAddress();
+  sensor.queryZoneFilter();
+#endif
+
   sensor.endConfigurationSession();
 
-  #if DEBUG_ENABLED
-    Serial.println("  Status: OK");
-    Serial.println();
-  #endif
+#if DEBUG_ENABLED
+  Serial.println("  Status: OK");
+  Serial.println();
+#endif
 }
 
 // ============================================================================
@@ -189,32 +192,32 @@ void initializeSensor() {
 void processTargetData() {
   // Get number of valid targets
   int numTargets = sensor.getNrValidTargets();
-  
+
   if (numTargets == 0) {
     handleNoTarget();
     return;
   }
 
+  /*
   // Find the closest target by iterating through all targets
-  Target* closestTarget = nullptr;
-  float minDistance = MAX_DISTANCE * 1000.0; // Convert to millimeters
-  
+  RadarTarget closestTarget;
+  float minDistance = MAX_DISTANCE * 1000.0;  // Convert to millimeters
+
   for (int i = 0; i < numTargets; i++) {
-    Target* target = sensor.getTarget(i);
-    if (target != nullptr && target->d < minDistance) {
-      minDistance = target->d;
+    auto target = sensor.getTarget(i);
+    //if (target != nullptr && target->d < minDistance) {
+    if (target.d < minDistance) {
+      minDistance = target.d;
       closestTarget = target;
     }
   }
-  
-  if (closestTarget == nullptr) {
-    handleNoTarget();
-    return;
-  }
+  */
+  auto closestTarget = sensor.getTarget(0);
+  Serial.println(closestTarget.format().c_str());
 
   // Extract distance and angle from closest target
-  float distanceMM = closestTarget->d;      // Distance in millimeters
-  float angle = closestTarget->angle;       // Angle in degrees
+  float distanceMM = closestTarget.d;  // Distance in millimeters
+  float angle = closestTarget.angle;   // Angle in degrees
 
   // Convert distance to meters
   float distanceM = distanceMM / 1000.0;
@@ -234,35 +237,35 @@ void processTargetData() {
   // Update LED strip
   updateLEDs(ledCount, hue);
 
-  // Debug output
-  #if DEBUG_ENABLED
-    printTargetInfo(distanceM, angle, ledCount, hue);
-  #endif
+// Debug output
+#if DEBUG_ENABLED
+  printTargetInfo(distanceM, angle, ledCount, hue);
+#endif
 }
 
 /**
  * Handle case when no target is detected
  */
 void handleNoTarget() {
-  #ifdef DEFAULT_BEHAVIOR_ALL_OFF
-    updateLEDs(0, 0);
-  #endif
+#ifdef DEFAULT_BEHAVIOR_ALL_OFF
+  updateLEDs(0, 0);
+#endif
 
-  #ifdef DEFAULT_BEHAVIOR_ALL_ON
-    updateLEDs(DEFAULT_LED_COUNT, DEFAULT_HUE);
-  #endif
+#ifdef DEFAULT_BEHAVIOR_ALL_ON
+  updateLEDs(DEFAULT_LED_COUNT, DEFAULT_HUE);
+#endif
 
-  #ifdef DEFAULT_BEHAVIOR_LAST_STATE
-    // Keep last state - do nothing
-  #endif
+#ifdef DEFAULT_BEHAVIOR_LAST_STATE
+  // Keep last state - do nothing
+#endif
 
-  #if DEBUG_ENABLED
-    static unsigned long lastNoTargetPrint = 0;
-    if (millis() - lastNoTargetPrint > 2000) {
-      Serial.println("No targets detected");
-      lastNoTargetPrint = millis();
-    }
-  #endif
+#if DEBUG_ENABLED
+  static unsigned long lastNoTargetPrint = 0;
+  if (millis() - lastNoTargetPrint > 2000) {
+    Serial.println("No targets detected");
+    lastNoTargetPrint = millis();
+  }
+#endif
 }
 
 // ============================================================================
@@ -349,7 +352,7 @@ void updateLEDs(int ledCount, uint8_t hue) {
  */
 void printTargetInfo(float distance, float angle, int ledCount, uint8_t hue) {
   static unsigned long lastPrint = 0;
-  
+
   // Limit print rate to avoid flooding serial output
   if (millis() - lastPrint < 500) {
     return;
@@ -360,22 +363,22 @@ void printTargetInfo(float distance, float angle, int ledCount, uint8_t hue) {
   Serial.print("Distance: ");
   Serial.print(distance, 2);
   Serial.println(" m");
-  
+
   Serial.print("Angle: ");
   Serial.print(angle, 1);
   Serial.println(" °");
-  
+
   Serial.print("LED Count: ");
   Serial.print(ledCount);
   Serial.print(" / ");
   Serial.println(NUM_LEDS);
-  
+
   Serial.print("Hue: ");
   Serial.print(hue);
   Serial.print(" (");
   printColorName(hue);
   Serial.println(")");
-  
+
   Serial.println();
 }
 

@@ -18,14 +18,14 @@
  * UART Pins for HLK-LD2450 Sensor
  * Note: ESP32 TX connects to sensor RX, ESP32 RX connects to sensor TX
  */
-#define UART_TX_PIN 16        // ESP32 TX pin (to sensor RX)
-#define UART_RX_PIN 17        // ESP32 RX pin (from sensor TX)
+#define UART_RX_PIN 16        // ESP32 RX pin (from sensor TX)
+#define UART_TX_PIN 17        // ESP32 TX pin (to sensor RX)
 
 /**
  * LED Strip Data Pin
  * Connect to the data input (DIN) of the WS2812B LED strip
  */
-#define LED_DATA_PIN 5        // GPIO pin for LED strip data
+#define LED_DATA_PIN 21        // GPIO pin for LED strip data
 
 // ============================================================================
 // LED STRIP CONFIGURATION
