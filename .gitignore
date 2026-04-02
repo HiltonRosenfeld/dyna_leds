@@ -1,0 +1,72 @@
+# Arduino build artifacts
+*.hex
+*.elf
+*.bin
+*.map
+
+# Build directories
+build/
+.build/
+
+# Arduino IDE
+*.ino.cpp
+*.ino.globals.h
+
+# Build reports
+build_report.txt
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# VSCode
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Editor backup files
+*~
+*.swp
+*.swo
+*.bak
+
+# Python (if using any Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Personal notes
+notes.txt
+scratch.txt
